@@ -1,9 +1,8 @@
-<html>
-<body>
+{% extends "base.html" %}
+{% block body %}
 {% if client_id and scope %}
-    <a href='https://drchrono.com/o/authorize/?redirect_uri={{redirect_uri|urlencode}}&response_type=code&client_id={{client_id|urlencode}}&scope={{scope|urlencode}}'>Log In</a>
+    <a href='https://drchrono.com/o/authorize/?redirect_uri={{redirect_uri|urlencode}}&response_type=code&client_id={{client_id|urlencode}}&scope={{scope|urlencode}}'>Login with drchrono</a>
 {% else %}
-    <p>client_id and/or scopes unavailable</p>
+    <div>client_id and/or scopes unavailable</div>
 {% endif %}
-</body>
-</html>
+{% endblock %}
