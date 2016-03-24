@@ -20,7 +20,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '$+u18lfn&mvq-)^s%i^n=-o+8q1nkvo72!k_#g330rn2ve=pwm'
+import json
+data = open('keys.json')
+keys = json.load(data)
+data.close()
+SECRET_KEY = keys['django_secret_key']
+CLIENT_ID = keys['client_id']
+CLIENT_SECRET = keys['client_secret']
+REDIRECT_URI = 'http://localhost:8000/happybirthday/doctor'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -55,7 +62,7 @@ ROOT_URLCONF = 'doctorsayshappybirthday.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'happybirthday/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
