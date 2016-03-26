@@ -1,7 +1,12 @@
 {% extends "base.html" %}
 {% block body %}
 {% if client_id and scope %}
-    <a href='https://drchrono.com/o/authorize/?redirect_uri={{redirect_uri|urlencode}}&response_type=code&client_id={{client_id|urlencode}}&scope={{scope|urlencode}}'>Login with drchrono</a>
+    <h4>Its hard enough remembering your own birthday, let alone all your patients.</h4>
+    <div>Step 1: Subscribe to our automatic birthday wishing service through drchrono</div>
+    <div>Step 2: Get off the internet and go help your patients</div>
+    <div>Step 3: Pretend you actually rememeber your patient's birthday when they thank you after we send them a birthday email</div>
+    <div>If you're sure you'd like to subscribe to our service, click the link below.<div>
+    <a href='https://drchrono.com/o/authorize/?redirect_uri={{redirect_uri|urlencode}}&response_type=code&client_id={{client_id|urlencode}}&scope={{scope|urlencode}}'>Yes I'm sure, subscribe me already. I don't have all day.</a>
 {% else %}
     <div>client_id and/or scopes unavailable</div>
 {% endif %}
