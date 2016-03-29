@@ -3,6 +3,8 @@ from django.http import HttpResponse
 from django.conf import settings
 import datetime, pytz, requests
 
+from .models import Doctor, Patient
+
 BASE_URL = 'https://drchrono.com'
 
 # Create your views here.
@@ -30,7 +32,6 @@ def doctor(request):
     access_token = data['access_token']
     refresh_token = data['refresh_token']
     expires_timestamp = datetime.datetime.now(pytz.utc) + datetime.timedelta(seconds=data['expires_in'])
-    # save to db
 
     headers = {
           'Authorization': 'Bearer %s' % access_token
@@ -40,9 +41,17 @@ def doctor(request):
     response.raise_for_status()
     data = response.json()
 
-    # save to db
-    doctor_id = data['id']
+    doctor_id = data['doctor']
     username = data['username']
+
+    # save to db
+    d = Doctor(name=username,
+               doctor_id=doctor_id,
+               access_token=access_token,
+               refresh_token=refresh_token,
+               expires_timestamp=expires_timestamp)
+    d.save()
+
 
     patients = []
     patients_url = '%s/api/patients_summary' % BASE_URL
@@ -51,5 +60,13 @@ def doctor(request):
       patients.extend(data['results'])
       patients_url = data['next'] # A JSON null on the last page
 
-    return render(request, 'happybirthday/doctor.html', {'patients':patients})
+    for patient in patients:
+      full_name = patient['first_name'] + ' ' + patient['last_name']
+      p = Patient(name=full_name,
+                  patient_id=patient['id'],
+                  doctor=d)
+      p.save()
+
+
+    return render(request, 'happybirthday/doctor.html', {'doctor':username, 'patients':patients})
 

@@ -5,7 +5,7 @@
   <div>Here are your patients</div>
   <ul id="patients">
   {% for patient in patients %}
-  <li>{{patient.id}}: {{patient.first_name}} {{patient.last_name}} {{patient.date_of_birth}}</li>
+  <li>Doctor: ({{patient.doctor}}) {{patient.id}}: {{patient.first_name}} {{patient.last_name}} {{patient.date_of_birth}}</li>
   {% endfor %}
   </ul>
 {% endif %}
