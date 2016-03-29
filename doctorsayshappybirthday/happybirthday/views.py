@@ -7,9 +7,12 @@ from .models import Doctor, Patient
 
 BASE_URL = 'https://drchrono.com'
 
+# need more than patients_summary scope to get patient's email
+patientScope = 'patients:read'
+
 # Create your views here.
 def login(request):
-    return render(request, 'happybirthday/login.html', {'redirect_uri':settings.REDIRECT_URI, 'client_id':settings.CLIENT_ID, 'scope':'patients:summary:read'})
+    return render(request, 'happybirthday/login.html', {'redirect_uri':settings.REDIRECT_URI, 'client_id':settings.CLIENT_ID, 'scope':patientScope})
 
 def doctor(request):
     error = request.GET.get('error')
@@ -54,7 +57,8 @@ def doctor(request):
 
 
     patients = []
-    patients_url = '%s/api/patients_summary' % BASE_URL
+    # get /api/patients to retrieve email
+    patients_url = '%s/api/patients' % BASE_URL
     while patients_url:
       data = requests.get(patients_url, headers=headers).json()
       patients.extend(data['results'])
@@ -62,7 +66,13 @@ def doctor(request):
 
     for patient in patients:
       full_name = patient['first_name'] + ' ' + patient['last_name']
+      dobString = patient['date_of_birth'].replace('-','')
+      dob = datetime.datetime.strptime(dobString,'%Y%m%d')
+      timezoneAwareDob = pytz.timezone('America/Los_Angeles').localize(dob)
+
       p = Patient(name=full_name,
+                  email=patient['email'],
+                  date_of_birth=timezoneAwareDob,
                   patient_id=patient['id'],
                   doctor=d)
       p.save()

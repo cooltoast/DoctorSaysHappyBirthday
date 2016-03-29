@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block body %}
-<h4>You've successfully logged in! Welcome!</h4>
+<h4>Welcome <b>{{doctor}}</b>! You've successfully logged in!</h4>
 {% if patients %}
   <div>Here are your patients</div>
   <ul id="patients">
