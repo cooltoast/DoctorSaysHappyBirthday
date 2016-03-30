@@ -10,6 +10,46 @@ BASE_URL = 'https://drchrono.com'
 # need more than patients_summary scope to get patient's email
 patientScope = 'patients:read'
 
+def getHeader(access_token):
+  return {
+    'Authorization': 'Bearer %s' % access_token
+  }
+
+def updatePatientList(doctor):
+  patients = []
+  createdPatients = []
+  # get /api/patients to retrieve email
+  patients_url = '%s/api/patients' % BASE_URL
+  while patients_url:
+    data = requests.get(patients_url, headers=getHeader(doctor.access_token)).json()
+    patients.extend(data['results'])
+    patients_url = data['next'] # A JSON null on the last page
+
+  for patient in patients:
+    full_name = patient['first_name'] + ' ' + patient['last_name']
+    dobString = patient['date_of_birth'].replace('-','')
+    dob = datetime.datetime.strptime(dobString,'%Y%m%d')
+    timezoneAwareDob = pytz.timezone('America/Los_Angeles').localize(dob)
+    patient_id = patient['id']
+
+    # update if exists or create new
+    params = {
+      'name':full_name,
+      'email':patient['email'],
+      'date_of_birth':timezoneAwareDob,
+      'patient_id':patient_id,
+      'doctor':doctor,
+    }
+    p, patientCreated = Patient.objects.update_or_create(
+      patient_id=patient_id,
+      defaults=params
+    )
+
+    if patientCreated:
+      # only add important info
+      createdPatients.append(params)
+
+  return createdPatients
 
 # Create your views here.
 def login(request):
@@ -34,17 +74,13 @@ def doctor(request):
     refresh_token = data['refresh_token']
     expires_timestamp = datetime.datetime.now(pytz.utc) + datetime.timedelta(seconds=data['expires_in'])
 
-    headers = {
-          'Authorization': 'Bearer %s' % access_token
-    }
 
-    response = requests.get('%s/api/users/current' % BASE_URL, headers=headers)
+    response = requests.get('%s/api/users/current' % BASE_URL, headers=getHeader(access_token))
     response.raise_for_status()
     data = response.json()
 
     doctor_id = data['doctor']
     username = data['username']
-
 
     # update if exists or create new
     params = {
@@ -59,42 +95,7 @@ def doctor(request):
       defaults=params
     )
 
-
-    patients = []
-    createdPatients = []
-    # get /api/patients to retrieve email
-    patients_url = '%s/api/patients' % BASE_URL
-    while patients_url:
-      data = requests.get(patients_url, headers=headers).json()
-      patients.extend(data['results'])
-      patients_url = data['next'] # A JSON null on the last page
-
-    for patient in patients:
-      full_name = patient['first_name'] + ' ' + patient['last_name']
-      dobString = patient['date_of_birth'].replace('-','')
-      dob = datetime.datetime.strptime(dobString,'%Y%m%d')
-      timezoneAwareDob = pytz.timezone('America/Los_Angeles').localize(dob)
-      patient_id = patient['id']
-
-      # update if exists or create new
-      params = {
-        'name':full_name,
-        'email':patient['email'],
-        'date_of_birth':timezoneAwareDob,
-        'patient_id':patient_id,
-        'doctor':d,
-      }
-      p, patientCreated = Patient.objects.update_or_create(
-        patient_id=patient_id,
-        defaults=params
-      )
-
-      if patientCreated:
-        # only add important info
-        createdPatients.append(params)
-
-
-
+    createdPatients = updatePatientList(d)
 
     return render(request, 'happybirthday/doctor.html', {'doctor':username, 'doctor_created':doctorCreated, 'patients':createdPatients})
 

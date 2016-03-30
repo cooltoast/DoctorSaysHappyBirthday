@@ -54,10 +54,11 @@ def updateDoctorsAndPatients():
       timezoneAwareExpiresTimestamp = pytz.timezone('America/Los_Angeles').localize(expires_timestamp)
 
       # update
-      d.access_token = access_token
-      d.expires_timestamp = expires_timestamp
-      d.save()
+      doctor.access_token = access_token
+      doctor.expires_timestamp = expires_timestamp
+      doctor.save()
 
     # update patient list
-    updatePatientList()
+    createdPatients = updatePatientList(doctor)
+    #print 'created patients: %s' % createdPatients
 
