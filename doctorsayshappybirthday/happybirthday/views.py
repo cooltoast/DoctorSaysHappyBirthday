@@ -10,6 +10,7 @@ BASE_URL = 'https://drchrono.com'
 # need more than patients_summary scope to get patient's email
 patientScope = 'patients:read'
 
+
 # Create your views here.
 def login(request):
     return render(request, 'happybirthday/login.html', {'redirect_uri':settings.REDIRECT_URI, 'client_id':settings.CLIENT_ID, 'scope':patientScope})
@@ -17,18 +18,15 @@ def login(request):
 def doctor(request):
     error = request.GET.get('error')
     if (error is not None):
-        #return render(request, 'happybirthday/error.html', {'message':error})
         raise ValueError('Error authorizing application: %s' % error)
 
-    requestData = {
+    response = requests.post('%s/o/token/' % BASE_URL, data={
         'code': request.GET.get('code'),
         'grant_type': 'authorization_code',
         'redirect_uri': settings.REDIRECT_URI,
         'client_id': settings.CLIENT_ID,
         'client_secret': settings.CLIENT_SECRET
-    }
-
-    response = requests.post('%s/o/token/' % BASE_URL, data=requestData)
+    })
     response.raise_for_status()
     data = response.json()
 
@@ -47,16 +45,23 @@ def doctor(request):
     doctor_id = data['doctor']
     username = data['username']
 
-    # save to db
-    d = Doctor(name=username,
-               doctor_id=doctor_id,
-               access_token=access_token,
-               refresh_token=refresh_token,
-               expires_timestamp=expires_timestamp)
-    d.save()
+
+    # update if exists or create new
+    params = {
+      'name':username,
+      'doctor_id':doctor_id,
+      'access_token':access_token,
+      'refresh_token':refresh_token,
+      'expires_timestamp':expires_timestamp
+    }
+    d, doctorCreated = Doctor.objects.update_or_create(
+      doctor_id=doctor_id,
+      defaults=params
+    )
 
 
     patients = []
+    createdPatients = []
     # get /api/patients to retrieve email
     patients_url = '%s/api/patients' % BASE_URL
     while patients_url:
@@ -69,14 +74,27 @@ def doctor(request):
       dobString = patient['date_of_birth'].replace('-','')
       dob = datetime.datetime.strptime(dobString,'%Y%m%d')
       timezoneAwareDob = pytz.timezone('America/Los_Angeles').localize(dob)
+      patient_id = patient['id']
 
-      p = Patient(name=full_name,
-                  email=patient['email'],
-                  date_of_birth=timezoneAwareDob,
-                  patient_id=patient['id'],
-                  doctor=d)
-      p.save()
+      # update if exists or create new
+      params = {
+        'name':full_name,
+        'email':patient['email'],
+        'date_of_birth':timezoneAwareDob,
+        'patient_id':patient_id,
+        'doctor':d,
+      }
+      p, patientCreated = Patient.objects.update_or_create(
+        patient_id=patient_id,
+        defaults=params
+      )
+
+      if patientCreated:
+        # only add important info
+        createdPatients.append(params)
 
 
-    return render(request, 'happybirthday/doctor.html', {'doctor':username, 'patients':patients})
+
+
+    return render(request, 'happybirthday/doctor.html', {'doctor':username, 'doctor_created':doctorCreated, 'patients':createdPatients})
 
